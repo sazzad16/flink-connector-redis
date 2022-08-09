@@ -23,12 +23,7 @@ import org.apache.flink.streaming.api.functions.sink.SinkFunction;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 import org.apache.flink.streaming.connectors.redis.internal.SchemalessDataRowToMap;
 import org.apache.flink.types.Row;
-
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import java.util.ArrayList;
 
@@ -77,7 +72,7 @@ public class RedisStreamProducerITCase extends RedisITCaseBase {
 
         env.execute("Test Redis Stream Producer");
 
-        assertEquals(NUM_ELEMENTS, jedis.xlen(REDIS_KEY).intValue());
+        assertEquals(NUM_ELEMENTS, jedis.xlen(REDIS_KEY));
     }
 
     private static class TestRowSourceFunction implements SourceFunction<Row> {

@@ -17,49 +17,74 @@
 
 package org.apache.flink.streaming.connectors.redis;
 
+import org.apache.flink.runtime.testutils.MiniClusterResourceConfiguration;
 import org.apache.flink.streaming.connectors.redis.config.RedisConfigConstants;
 import org.apache.flink.streaming.connectors.redis.util.JedisUtils;
 import org.apache.flink.test.util.AbstractTestBase;
-
-import org.junit.After;
-import org.junit.Before;
+import org.apache.flink.test.util.MiniClusterWithClientResource;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.utility.DockerImageName;
 import redis.clients.jedis.Jedis;
 
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /** */
+@Testcontainers
 public abstract class RedisITCaseBase extends AbstractTestBase {
 
     public static final String REDIS_IMAGE = "redis";
     private static final int REDIS_PORT = 6379;
 
     private static final AtomicBoolean running = new AtomicBoolean(false);
-    private static final GenericContainer<?> container =
-            new GenericContainer<>(REDIS_IMAGE).withExposedPorts(REDIS_PORT);
 
+    @Container
+    private static final GenericContainer<?> redis =
+            new GenericContainer<>(DockerImageName.parse(REDIS_IMAGE)).withExposedPorts(REDIS_PORT);
+
+    public static MiniClusterWithClientResource cluster =
+            new MiniClusterWithClientResource(
+                    new MiniClusterResourceConfiguration.Builder()
+                            .setNumberSlotsPerTaskManager(2)
+                            .setNumberTaskManagers(1)
+                            .build());
     protected Jedis jedis;
+
+    @BeforeAll
+    public static void beforeAll() throws Exception {
+        cluster.before();
+    }
+
+    @AfterAll
+    public static void afterAll() {
+        cluster.after();
+    }
 
     protected static synchronized void start() {
         if (!running.get()) {
-            container.start();
+            redis.start();
             running.set(true);
         }
     }
 
     protected static void stop() {
-        container.stop();
+        redis.stop();
         running.set(false);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         jedis = JedisUtils.createResource(getConfigProperties());
         jedis.flushAll();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (jedis != null) {
             jedis.close();
@@ -70,9 +95,10 @@ public abstract class RedisITCaseBase extends AbstractTestBase {
         start();
 
         Properties configProps = new Properties();
-        configProps.setProperty(RedisConfigConstants.REDIS_HOST, container.getContainerIpAddress());
+        // configProps.setProperty(RedisConfigConstants.REDIS_HOST, redis.getContainerIpAddress());
+        configProps.setProperty(RedisConfigConstants.REDIS_HOST, redis.getHost());
         configProps.setProperty(
-                RedisConfigConstants.REDIS_PORT, Integer.toString(container.getFirstMappedPort()));
+                RedisConfigConstants.REDIS_PORT, Integer.toString(redis.getFirstMappedPort()));
         return configProps;
     }
 }

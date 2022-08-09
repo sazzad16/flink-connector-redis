@@ -19,8 +19,8 @@ package org.apache.flink.streaming.connectors.redis;
 
 import org.apache.flink.streaming.connectors.redis.config.StartupMode;
 import redis.clients.jedis.Jedis;
-import redis.clients.jedis.StreamEntry;
 import redis.clients.jedis.StreamEntryID;
+import redis.clients.jedis.resps.StreamEntry;
 
 import java.util.LinkedHashMap;
 import java.util.List;
