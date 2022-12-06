@@ -22,25 +22,25 @@ import org.apache.flink.connector.base.sink.writer.AsyncSinkWriter;
 import org.apache.flink.connector.base.sink.writer.BufferedRequestState;
 import org.apache.flink.connector.base.sink.writer.ElementConverter;
 import org.apache.flink.connector.base.sink.writer.config.AsyncSinkWriterConfiguration;
-import org.apache.flink.connector.redis.streams.sink.connection.JedisConnector;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import redis.clients.jedis.UnifiedJedis;
 
 class RedisStreamsWriter<T> extends AsyncSinkWriter<T, RedisStreamsCommand> {
 
-    private final JedisConnector jedisConnector;
+    private final UnifiedJedis jedis;
 
     public RedisStreamsWriter(
-            JedisConnector jedisConnector,
+            UnifiedJedis jedis,
             ElementConverter<T, RedisStreamsCommand> elementConverter,
             AsyncSinkWriterConfiguration asyncConfig,
             Sink.InitContext initContext,
             Collection<BufferedRequestState<RedisStreamsCommand>> recoveredState) {
         super(elementConverter, initContext, asyncConfig, recoveredState);
-        this.jedisConnector = jedisConnector;
+        this.jedis = jedis;
     }
 
     @Override
@@ -49,7 +49,7 @@ class RedisStreamsWriter<T> extends AsyncSinkWriter<T, RedisStreamsCommand> {
             Consumer<List<RedisStreamsCommand>> requestResult) {
         List<RedisStreamsCommand> errors =
                 requestEntries.stream()
-                        .peek(command -> command.send(this.jedisConnector))
+                        .peek(command -> command.send(this.jedis))
                         .filter(RedisStreamsCommand::sendIncorrectly)
                         .collect(Collectors.toList());
 

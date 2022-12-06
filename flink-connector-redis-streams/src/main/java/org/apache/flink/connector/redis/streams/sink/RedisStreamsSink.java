@@ -21,13 +21,14 @@ import org.apache.flink.connector.base.sink.AsyncSinkBase;
 import org.apache.flink.connector.base.sink.writer.BufferedRequestState;
 import org.apache.flink.connector.base.sink.writer.config.AsyncSinkWriterConfiguration;
 import org.apache.flink.connector.redis.streams.sink.config.JedisConfig;
-import org.apache.flink.connector.redis.streams.sink.connection.JedisConnector;
 import org.apache.flink.connector.redis.streams.sink.connection.JedisConnectorBuilder;
 import org.apache.flink.core.io.SimpleVersionedSerializer;
 
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
+
+import redis.clients.jedis.UnifiedJedis;
 
 /**
  * A sink for publishing data into Redis.
@@ -72,9 +73,9 @@ public class RedisStreamsSink<T> extends AsyncSinkBase<T, RedisStreamsCommand> {
                         .setMaxTimeInBufferMS(getMaxTimeInBufferMS())
                         .setMaxRecordSizeInBytes(getMaxRecordSizeInBytes())
                         .build();
-        JedisConnector connection = JedisConnectorBuilder.build(jedisConfig);
+        UnifiedJedis jedis = JedisConnectorBuilder.build(jedisConfig);
         return new RedisStreamsWriter<>(
-                connection, getElementConverter(), asyncConfig, initContext, recoveredState);
+                jedis, getElementConverter(), asyncConfig, initContext, recoveredState);
     }
 
     @Override

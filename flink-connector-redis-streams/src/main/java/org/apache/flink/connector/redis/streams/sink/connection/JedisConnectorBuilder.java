@@ -22,12 +22,11 @@ import org.apache.flink.connector.redis.streams.sink.config.JedisConfig;
 import org.apache.flink.connector.redis.streams.sink.config.JedisPoolConfig;
 import org.apache.flink.connector.redis.streams.sink.config.JedisSentinelConfig;
 
+import java.util.Objects;
 import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import redis.clients.jedis.JedisCluster;
-import redis.clients.jedis.JedisPool;
-import redis.clients.jedis.JedisSentinelPool;
-
-import java.util.Objects;
+import redis.clients.jedis.JedisPooled;
+import redis.clients.jedis.UnifiedJedis;
 
 /** The builder for {@link JedisConnector}. */
 public class JedisConnectorBuilder {
@@ -38,16 +37,16 @@ public class JedisConnectorBuilder {
      * @param jedisConfig configuration base
      * @return @throws IllegalArgumentException if not valid configuration is provided
      */
-    public static JedisConnector build(JedisConfig jedisConfig) {
+    public static UnifiedJedis build(JedisConfig jedisConfig) {
         if (jedisConfig instanceof JedisPoolConfig) {
             JedisPoolConfig jedisPoolConfig = (JedisPoolConfig) jedisConfig;
             return JedisConnectorBuilder.build(jedisPoolConfig);
         } else if (jedisConfig instanceof JedisClusterConfig) {
             JedisClusterConfig jedisClusterConfig = (JedisClusterConfig) jedisConfig;
             return JedisConnectorBuilder.build(jedisClusterConfig);
-        } else if (jedisConfig instanceof JedisSentinelConfig) {
-            JedisSentinelConfig jedisSentinelConfig = (JedisSentinelConfig) jedisConfig;
-            return JedisConnectorBuilder.build(jedisSentinelConfig);
+//        } else if (jedisConfig instanceof JedisSentinelConfig) {
+//            JedisSentinelConfig jedisSentinelConfig = (JedisSentinelConfig) jedisConfig;
+//            return JedisConnectorBuilder.build(jedisSentinelConfig);
         } else {
             throw new IllegalArgumentException("Jedis configuration not found");
         }
@@ -60,21 +59,21 @@ public class JedisConnectorBuilder {
      * @return container for single Redis environment
      * @throws NullPointerException if jedisPoolConfig is null
      */
-    public static JedisConnector build(JedisPoolConfig jedisPoolConfig) {
+    public static JedisPooled build(JedisPoolConfig jedisPoolConfig) {
         Objects.requireNonNull(jedisPoolConfig, "Redis pool config should not be Null");
 
         GenericObjectPoolConfig genericObjectPoolConfig =
                 getGenericObjectPoolConfig(jedisPoolConfig);
 
-        JedisPool jedisPool =
-                new JedisPool(
+        JedisPooled jedisPooled =
+                new JedisPooled(
                         genericObjectPoolConfig,
                         jedisPoolConfig.getHost(),
                         jedisPoolConfig.getPort(),
                         jedisPoolConfig.getConnectionTimeout(),
                         jedisPoolConfig.getPassword(),
                         jedisPoolConfig.getDatabase());
-        return new JedisConnector(jedisPool);
+        return jedisPooled;
     }
 
     /**
@@ -84,7 +83,7 @@ public class JedisConnectorBuilder {
      * @return container for Redis Cluster environment
      * @throws NullPointerException if jedisClusterConfig is null
      */
-    public static JedisConnector build(JedisClusterConfig jedisClusterConfig) {
+    public static JedisCluster build(JedisClusterConfig jedisClusterConfig) {
         Objects.requireNonNull(jedisClusterConfig, "Redis cluster config should not be Null");
 
         GenericObjectPoolConfig genericObjectPoolConfig =
@@ -98,33 +97,33 @@ public class JedisConnectorBuilder {
                         jedisClusterConfig.getMaxRedirections(),
                         jedisClusterConfig.getPassword(),
                         genericObjectPoolConfig);
-        return new JedisConnector(jedisCluster);
+        return jedisCluster;
     }
 
-    /**
-     * Builds container for Redis Sentinel environment.
-     *
-     * @param jedisSentinelConfig configuration for JedisSentinel
-     * @return container for Redis sentinel environment
-     * @throws NullPointerException if jedisSentinelConfig is null
-     */
-    public static JedisConnector build(JedisSentinelConfig jedisSentinelConfig) {
-        Objects.requireNonNull(jedisSentinelConfig, "Redis sentinel config should not be Null");
-
-        GenericObjectPoolConfig genericObjectPoolConfig =
-                getGenericObjectPoolConfig(jedisSentinelConfig);
-
-        JedisSentinelPool jedisSentinelPool =
-                new JedisSentinelPool(
-                        jedisSentinelConfig.getMasterName(),
-                        jedisSentinelConfig.getSentinels(),
-                        genericObjectPoolConfig,
-                        jedisSentinelConfig.getConnectionTimeout(),
-                        jedisSentinelConfig.getSoTimeout(),
-                        jedisSentinelConfig.getPassword(),
-                        jedisSentinelConfig.getDatabase());
-        return new JedisConnector(jedisSentinelPool);
-    }
+//    /**
+//     * Builds container for Redis Sentinel environment.
+//     *
+//     * @param jedisSentinelConfig configuration for JedisSentinel
+//     * @return container for Redis sentinel environment
+//     * @throws NullPointerException if jedisSentinelConfig is null
+//     */
+//    public static JedisConnector build(JedisSentinelConfig jedisSentinelConfig) {
+//        Objects.requireNonNull(jedisSentinelConfig, "Redis sentinel config should not be Null");
+//
+//        GenericObjectPoolConfig genericObjectPoolConfig =
+//                getGenericObjectPoolConfig(jedisSentinelConfig);
+//
+//        JedisSentinelPool jedisSentinelPool =
+//                new JedisSentinelPool(
+//                        jedisSentinelConfig.getMasterName(),
+//                        jedisSentinelConfig.getSentinels(),
+//                        genericObjectPoolConfig,
+//                        jedisSentinelConfig.getConnectionTimeout(),
+//                        jedisSentinelConfig.getSoTimeout(),
+//                        jedisSentinelConfig.getPassword(),
+//                        jedisSentinelConfig.getDatabase());
+//        return new JedisConnector(jedisSentinelPool);
+//    }
 
     public static GenericObjectPoolConfig getGenericObjectPoolConfig(JedisConfig jedisConfig) {
         GenericObjectPoolConfig genericObjectPoolConfig =

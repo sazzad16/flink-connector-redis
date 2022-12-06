@@ -17,12 +17,11 @@
 
 package org.apache.flink.connector.redis.streams.sink;
 
-import org.apache.flink.connector.redis.streams.sink.connection.JedisConnector;
-
 import redis.clients.jedis.StreamEntryID;
 
 import java.io.Serializable;
 import java.util.Map;
+import redis.clients.jedis.UnifiedJedis;
 
 /** A Redis Streams Command. */
 public class RedisStreamsCommand implements Serializable {
@@ -40,14 +39,10 @@ public class RedisStreamsCommand implements Serializable {
         return new Builder();
     }
 
-    public void send(JedisConnector connector) {
-        this.streamId =
-                connector
-                        .getJedisCommands()
-                        .xadd(
-                                key,
-                                (this.streamId != null) ? this.streamId : StreamEntryID.NEW_ENTRY,
-                                value);
+    public void send(UnifiedJedis jedis) {
+        this.streamId = jedis.xadd(key,
+                (this.streamId != null) ? this.streamId : StreamEntryID.NEW_ENTRY,
+                value);
     }
 
     public boolean sendCorrectly() {
